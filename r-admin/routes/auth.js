@@ -3,7 +3,9 @@ const express = require('express');
 const User = require('../models/User');
 const router = express.Router();
 const { body, validationResult } = require('express-validator');
-
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const JWT_SECRET = "Neerajisagoodb$oy";
 //Create a user using:POST "/api/auth/createuser". Doesn't reqruied Auth
 router.post('/createuser',[
     body('name', 'Name should be at least 3 characters.').isLength({min:3}),
@@ -15,19 +17,25 @@ router.post('/createuser',[
     if (!result.isEmpty()) {
       res.send({ errors: result.array() });
     }
-    //Check whether the user exists already
     try {
+      //Check whether the user exists already
       let user = await User.findOne({email: req.body.email});
       if(user){
         return res.status(400).json({error: "Sorry a user with this email already exists."});
       }
       //Create a new User
+      const salt = await bcrypt.genSalt(10);
+      const secPass = await bcrypt.hash(req.body.password, salt);
       user = await User.create({
           name:req.body.name,
           email:req.body.email,
-          password:req.body.password
+          password:secPass
       })
-      res.json({error: 'User Created'})
+      const data = {
+        user:{id:user.id}
+      }
+      const authToken = jwt.sign(data, JWT_SECRET);
+      res.json({authToken});
     } catch (error) {
       console.error(error.message);
       res.status(500).send("Some error occured.")
