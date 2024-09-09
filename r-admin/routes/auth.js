@@ -38,8 +38,40 @@ router.post('/createuser',[
       res.json({authToken});
     } catch (error) {
       console.error(error.message);
-      res.status(500).send("Some error occured.")
+      res.status(500).send("Internal Server Error")
     }
+})
+
+//Authenticate a user using:POST "/api/auth/login". Doesn't reqruied Auth
+router.post('/login',[
+  body('email', 'Enter a valid email address.').isEmail(),
+  body('password', 'Password can not be blank').exists()
+], async (req, res) =>{
+  //If there are errors, return Bed Request and the errors 
+  const result = validationResult(req);
+  if (!result.isEmpty()) {
+    res.send({ errors: result.array() });
+  }
+  const {email, password} = req.body;
+  try {
+    //Check whether the user exists already
+    let user = await User.findOne({email: email});
+    if(!user){
+      return res.status(400).json({error: "Please try to login with correct credentials "});
+    }
+    const passcompare = await bcrypt.compare(password, user.password);
+    if(!passcompare){
+      return res.status(400).json({error: "Please try to login with correct credentials "});
+    }
+    const data = {
+      user:{id:user.id}
+    }
+    const authToken = jwt.sign(data, JWT_SECRET);
+    res.json({authToken});
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).send("Internal Server Error")
+  }
 })
 
 module.exports = router
