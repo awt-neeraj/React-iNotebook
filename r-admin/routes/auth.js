@@ -5,8 +5,10 @@ const router = express.Router();
 const { body, validationResult } = require('express-validator');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const fetchuser = require('../middleware/fetchuser');
 const JWT_SECRET = "Neerajisagoodb$oy";
-//Create a user using:POST "/api/auth/createuser". Doesn't reqruied Auth
+
+//Route 1: Create a user using:POST "/api/auth/createuser". Doesn't reqruied Authenticate
 router.post('/createuser',[
     body('name', 'Name should be at least 3 characters.').isLength({min:3}),
     body('email', 'Enter a valid email address.').isEmail(),
@@ -38,11 +40,11 @@ router.post('/createuser',[
       res.json({authToken});
     } catch (error) {
       console.error(error.message);
-      res.status(500).send("Internal Server Error")
+      res.status(500).send("Internal Server Error");
     }
 })
 
-//Authenticate a user using:POST "/api/auth/login". Doesn't reqruied Auth
+//Route 2: Authenticate a user using:POST "/api/auth/login". Doesn't reqruied Authenticate
 router.post('/login',[
   body('email', 'Enter a valid email address.').isEmail(),
   body('password', 'Password can not be blank').exists()
@@ -70,8 +72,18 @@ router.post('/login',[
     res.json({authToken});
   } catch (error) {
     console.error(error.message);
-    res.status(500).send("Internal Server Error")
+    res.status(500).send("Internal Server Error");
   }
 })
 
+//Route 3: Get loggedin user details using:POST "/api/auth/getuser". Does reqruied Authenticate
+router.post('/getuser', fetchuser, async (req, res) =>{
+try {
+  const user = await User.findById(req.user.id).select("-password");
+  res.send(user);
+} catch (error) {
+  console.error(error.message);
+  res.status(500).send("Internal Server Error");
+}
+})
 module.exports = router
